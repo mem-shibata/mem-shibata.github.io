@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CCA-F 英単語カード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EDF5; --paper:#FCFDFF; --ink:#1E2B45; --muted:#65718A; --rule:#CBD8EE;
+  --margin:#D5484E; --known:#2F7D5B; --chip:#DCE4F1; --line:#C3CEE0;
+  --en:"Literata", Georgia, "Times New Roman", serif;
+  --ja:"Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#141B29; --paper:#1D2638; --ink:#E6ECF7; --muted:#9AA6BD; --rule:#2C3850;
+  --margin:#E0676C; --known:#5DBB8E; --chip:#27324A; --line:#34415C;
+}}
+:root[data-theme="dark"]{
+  --bg:#141B29; --paper:#1D2638; --ink:#E6ECF7; --muted:#9AA6BD; --rule:#2C3850;
+  --margin:#E0676C; --known:#5DBB8E; --chip:#27324A; --line:#34415C;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ja);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:24px 18px 48px}
+header h1{font-size:1.35rem;font-weight:700;margin:0 0 2px;letter-spacing:.01em}
+header p{margin:0;color:var(--muted);font-size:.88rem}
+.progress{display:flex;align-items:center;gap:12px;margin:16px 0 18px}
+.bar{flex:1;height:8px;border-radius:4px;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--known);width:0;transition:width .3s}
+.progress span{font-size:.85rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+.chip{border:1px solid transparent;background:var(--chip);border-radius:999px;padding:5px 12px;font-size:.85rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:6px 12px;font-size:.85rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:.85rem}
+label.tog{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-left:auto}
+:focus-visible{outline:2px solid var(--margin);outline-offset:2px}
+
+/* index card */
+.stage{perspective:1400px;margin-top:6px}
+.card{position:relative;width:100%;min-height:330px;cursor:pointer;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.3,.7,.3,1)}
+.card.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:6px;background:var(--paper);
+  box-shadow:0 1px 0 var(--line),0 10px 28px -14px rgba(20,35,70,.35);
+  background-image:linear-gradient(var(--paper) 0 56px, transparent 56px),
+    repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);
+  padding:0 26px 22px 64px;display:flex;flex-direction:column}
+.face::before{content:"";position:absolute;left:46px;top:0;bottom:0;width:2px;background:var(--margin);opacity:.7}
+.face::after{content:"";position:absolute;left:0;right:0;top:55px;height:2px;background:var(--margin);opacity:.55}
+.back{transform:rotateY(180deg)}
+.meta{height:56px;display:flex;align-items:center;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.meta .known-badge{color:var(--known);font-weight:700}
+.front-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding-bottom:20px}
+.word{font-family:var(--en);font-weight:600;font-size:clamp(2rem,6vw,2.9rem);line-height:1.15;margin:0;word-break:break-word}
+.word.ja{font-family:var(--ja);font-weight:700;font-size:clamp(1.5rem,4.6vw,2.1rem)}
+.pos{margin-top:10px;font-size:.85rem;color:var(--muted)}
+.hint{font-size:.78rem;color:var(--muted);text-align:right}
+.back .headline{font-family:var(--en);font-size:1.25rem;font-weight:600;margin:12px 0 0;line-height:32px}
+.back .meaning{font-size:1.2rem;font-weight:700;margin:0;line-height:32px}
+.back .ex{font-family:var(--en);font-size:1rem;margin:14px 0 0;line-height:32px}
+.back .exj{margin:0;color:var(--muted);font-size:.9rem;line-height:32px}
+.back .note{margin:10px 0 0;font-size:.85rem;line-height:1.6;padding:8px 10px;border-left:3px solid var(--margin);background:color-mix(in srgb,var(--margin) 8%, transparent)}
+.speak{background:transparent;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:.78rem}
+
+.actions{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;margin-top:16px;align-items:center}
+.btn{border:0;border-radius:10px;padding:13px 10px;font-weight:700;font-size:.95rem}
+.btn.again{background:var(--chip)}
+.btn.got{background:var(--known);color:#fff}
+.counter{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center;min-width:64px}
+.keys{margin-top:10px;font-size:.78rem;color:var(--muted);text-align:center}
+.empty{padding:40px 20px;text-align:center;background:var(--paper);border-radius:6px}
+
+/* list */
+.search{width:100%;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);margin-bottom:10px}
+.list{background:var(--paper);border-radius:6px;overflow:hidden}
+.row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1.1fr);gap:12px;padding:11px 14px;border-bottom:1px solid var(--rule);align-items:start}
+.row:last-child{border-bottom:0}
+.row .en{font-family:var(--en);font-weight:600}
+.row .en small{display:block;font-family:var(--ja);font-weight:400;color:var(--muted);font-size:.75rem}
+.row .jp{font-size:.92rem}
+.row .jp small{display:block;color:var(--muted);font-family:var(--en);font-size:.82rem;margin-top:2px}
+.check{width:20px;height:20px;margin-top:3px;accent-color:var(--known)}
+footer{margin-top:28px;font-size:.78rem;color:var(--muted)}
+footer a{color:inherit}
+[hidden]{display:none!important}
+@media (max-width:520px){
+  .face{padding-left:52px;padding-right:18px}
+  .face::before{left:36px}
+  .row{grid-template-columns:24px 1fr}
+  .row .jp{grid-column:2}
+  label.tog{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>CCA-F 英単語カード</h1>
+  <p>公開されている模擬問題の問題文・選択肢から、読解に必要な語を集めました。</p>
+</header>
+<div class="progress"><div class="bar"><i id="bar"></i></div><span id="prog"></span></div>
+
+<div class="chips" id="chips" role="group" aria-label="カテゴリ"></div>
+<div class="controls">
+  <div class="seg" role="group" aria-label="表示">
+    <button id="vCard" aria-pressed="true">カード</button><button id="vList" aria-pressed="false">一覧</button>
+  </div>
+  <div class="seg" role="group" aria-label="出題の向き" id="dirSeg">
+    <button id="dEn" aria-pressed="true">英 → 日</button><button id="dJa" aria-pressed="false">日 → 英</button>
+  </div>
+  <button class="ghost" id="shuffle">シャッフル</button>
+  <label class="tog"><input type="checkbox" id="onlyNew"> 未習得だけ</label>
+</div>
+
+<section id="cardView">
+  <div class="stage"><div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
+    <div class="face front">
+      <div class="meta"><span id="fCat"></span><span id="fKnown"></span></div>
+      <div class="front-body"><p class="word" id="fWord"></p><div class="pos" id="fPos"></div></div>
+      <div class="hint">タップで裏返す</div>
+    </div>
+    <div class="face back">
+      <div class="meta"><span id="bCat"></span><button class="speak" id="speak" type="button">発音を聞く</button></div>
+      <p class="headline" id="bWord"></p>
+      <p class="meaning" id="bMean"></p>
+      <p class="ex" id="bEx"></p>
+      <p class="exj" id="bExj"></p>
+      <p class="note" id="bNote"></p>
+    </div>
+  </div></div>
+  <div class="empty" id="empty" hidden>このカテゴリは全部覚えました。「未習得だけ」を外すと復習できます。</div>
+  <div class="actions" id="actions">
+    <button class="btn again" id="again">まだ</button>
+    <div class="counter" id="counter"></div>
+    <button class="btn got" id="got">覚えた</button>
+  </div>
+  <div class="keys">Space で裏返す　← まだ　→ 覚えた　S で発音</div>
+</section>
+
+<section id="listView" hidden>
+  <input class="search" id="search" type="search" placeholder="英語か日本語で検索">
+  <div class="list" id="list"></div>
+</section>
+
+<footer>
+  出典：SecuSpark、Certification Practice などの無料サンプル問題（非公式）。用語の意味は試験文脈での訳です。覚えた状態はこのブラウザにだけ保存されます。
+  <button class="ghost" id="reset" style="margin-top:8px;display:block">覚えた記録をリセット</button>
+</footer>
+</div>
+<script>
+const WORDS = [
+// ===== 設問の決まり文句 =====
+{c:"q",w:"most likely",p:"句",m:"最も可能性が高い",ex:"What is the most likely cause of this behavior?",exj:"この挙動の最も可能性が高い原因は何か？",n:"原因を問う設問の定番。"},
+{c:"q",w:"most effective",p:"句",m:"最も効果的な",ex:"Which approach is most effective for reducing false positives?",exj:"誤検知を減らすのに最も効果的な方法はどれか？"},
+{c:"q",w:"best fits",p:"句",m:"最もよく合う",ex:"Which tool_choice setting best fits this requirement?",exj:"この要件に最も合う tool_choice 設定はどれか？"},
+{c:"q",w:"best practice",p:"名",m:"ベストプラクティス、推奨される方法",ex:"Which error handling approach represents a best practice?",exj:"ベストプラクティスに当たるエラー処理はどれか？"},
+{c:"q",w:"recommended approach",p:"名",m:"推奨されるやり方",ex:"What is the recommended approach for this integration?",exj:"この連携で推奨されるやり方は何か？"},
+{c:"q",w:"most reliably",p:"副",m:"最も確実に",ex:"Which approach most reliably prevents this misuse?",exj:"この誤用を最も確実に防ぐ方法はどれか？",n:"「確実さ」を問う設問は、プロンプトより仕組み（コード・設定）で強制する選択肢が正解になりやすい。"},
+{c:"q",w:"strongest guarantee",p:"名",m:"最も強い保証",ex:"Which option provides the strongest guarantee of valid JSON?",exj:"有効な JSON を最も強く保証するのはどれか？"},
+{c:"q",w:"best explains",p:"句",m:"最もよく説明する",ex:"What best explains why the review failed?",exj:"レビューが失敗した理由を最もよく説明するのはどれか？"},
+{c:"q",w:"first diagnostic step",p:"名",m:"最初に行う診断手順",ex:"Before restructuring, what is the best first diagnostic step?",exj:"構成を変える前に、最初にすべき診断は何か？",n:"「まず何をすべきか」系。大改修より、まず確認する選択肢が正解になりがち。"},
+{c:"q",w:"What should ... do next?",p:"句",m:"次に何をすべきか",ex:"What should the coordinator do next?",exj:"コーディネーターは次に何をすべきか？"},
+{c:"q",w:"Which of the following",p:"句",m:"次のうちどれ",ex:"Which of the following is NOT a valid option?",exj:"次のうち有効な選択肢でないのはどれか？",n:"NOT / EXCEPT が大文字で入っていたら否定疑問。読み飛ばし注意。"},
+{c:"q",w:"primarily",p:"副",m:"主に",ex:"The agent is primarily responsible for synthesis.",exj:"そのエージェントは主に統合を担当する。"},
+{c:"q",w:"without",p:"前",m:"〜せずに",ex:"Enforce the order without redesigning the pipeline.",exj:"パイプラインを作り直さずに順序を強制する。",n:"制約条件を示す重要語。「〜せずに」を見落とすと誤答に引っ張られる。"},
+{c:"q",w:"rather than",p:"句",m:"〜ではなく、〜よりむしろ",ex:"It invokes its own searches rather than synthesizing findings.",exj:"結果を統合するのではなく、自分で検索を始めてしまう。"},
+{c:"q",w:"instead of",p:"句",m:"〜の代わりに",ex:"It gives vague descriptions instead of citing specific classes.",exj:"具体的なクラス名を挙げる代わりに曖昧な説明をする。"},
+{c:"q",w:"regardless of",p:"句",m:"〜に関係なく",ex:"The rule applies regardless of the request type.",exj:"そのルールはリクエストの種類に関係なく適用される。"},
+{c:"q",w:"as if",p:"句",m:"まるで〜かのように",ex:"Return results as if all queries succeeded.",exj:"すべてのクエリが成功したかのように結果を返す。",n:"失敗を隠す＝典型的な誤答パターン。"},
+
+// ===== 動詞 =====
+{c:"v",w:"mitigate",p:"動",m:"緩和する、軽減する",ex:"Section headers help mitigate the lost-in-the-middle effect.",exj:"見出しは lost-in-the-middle 現象の緩和に役立つ。"},
+{c:"v",w:"address",p:"動",m:"（問題に）対処する、取り組む",ex:"Re-run synthesis after the gap is addressed.",exj:"不足部分に対処した後で統合を再実行する。",n:"「住所」ではない。試験では9割こちらの意味。"},
+{c:"v",w:"enforce",p:"動",m:"強制する、徹底させる",ex:"The team needs to enforce that extraction always runs first.",exj:"抽出が必ず最初に実行されるよう強制したい。"},
+{c:"v",w:"ensure",p:"動",m:"確実にする、保証する",ex:"Ensure consistent date normalization across vendors.",exj:"ベンダー間で日付の正規化を確実に揃える。"},
+{c:"v",w:"append",p:"動",m:"末尾に追加する",ex:"Append the tool result to the conversation history.",exj:"ツール結果を会話履歴の末尾に追加する。"},
+{c:"v",w:"delegate",p:"動",m:"委任する、任せる",ex:"The coordinator re-delegates targeted follow-up questions.",exj:"コーディネーターが的を絞った追加質問を再委任する。"},
+{c:"v",w:"invoke",p:"動",m:"呼び出す、起動する",ex:"The skill loads only when explicitly invoked.",exj:"そのスキルは明示的に呼び出されたときだけ読み込まれる。"},
+{c:"v",w:"propagate",p:"動",m:"（上位へ）伝える、伝播させる",ex:"Propagate structured error context to the coordinator.",exj:"構造化されたエラー情報をコーディネーターに伝える。"},
+{c:"v",w:"escalate",p:"動",m:"（人間・上位に）引き継ぐ",ex:"The agent escalates the case to a human agent.",exj:"エージェントがケースを人間の担当者に引き継ぐ。"},
+{c:"v",w:"resolve",p:"動",m:"解決する",ex:"Resolve the issue autonomously when possible.",exj:"可能なら問題を自律的に解決する。"},
+{c:"v",w:"terminate",p:"動",m:"終了させる、打ち切る",ex:"Terminate the entire workflow and report the failure.",exj:"ワークフロー全体を打ち切り、失敗を報告する。",n:"1つの失敗で全体を止める選択肢はたいてい誤答。"},
+{c:"v",w:"retrieve",p:"動",m:"取得する",ex:"It successfully retrieves data from two sources.",exj:"2つのソースからはデータ取得に成功する。"},
+{c:"v",w:"aggregate",p:"動",m:"集約する、まとめる",ex:"The product aggregates 25 case analyses into one prompt.",exj:"25件の分析を1つのプロンプトに集約する。"},
+{c:"v",w:"synthesize",p:"動",m:"統合する、まとめ上げる",ex:"The synthesis agent combines findings into a report.",exj:"統合エージェントが調査結果をレポートにまとめる。",n:"名詞は synthesis（統合）。"},
+{c:"v",w:"consolidate",p:"動",m:"1つにまとめる、統合する",ex:"Consolidate both integrations behind one interface.",exj:"両方の連携を1つのインターフェースにまとめる。"},
+{c:"v",w:"correlate",p:"動",m:"関連付ける、突き合わせる",ex:"Use custom_id to correlate failures with source documents.",exj:"custom_id を使って失敗と元文書を突き合わせる。"},
+{c:"v",w:"diagnose",p:"動",m:"診断する、原因を突き止める",ex:"Use /memory to diagnose inconsistent behavior.",exj:"/memory で挙動の不一致を診断する。"},
+{c:"v",w:"verify",p:"動",m:"確認する、検証する",ex:"Verify which memory files are loaded.",exj:"どのメモリファイルが読み込まれているか確認する。"},
+{c:"v",w:"validate",p:"動",m:"妥当性を検証する",ex:"The tool validates URLs against the internal domain.",exj:"ツールが URL を社内ドメインと照合して検証する。"},
+{c:"v",w:"omit",p:"動",m:"省略する、抜かす",ex:"Claude often omits the suggested fix.",exj:"Claude は修正案をよく書き漏らす。"},
+{c:"v",w:"restrict",p:"動",m:"制限する",ex:"Restrict the agent's tools to those relevant to its role.",exj:"エージェントのツールを役割に関係するものに制限する。"},
+{c:"v",w:"distinguish",p:"動",m:"区別する",ex:"Examples help distinguish booking from availability checks.",exj:"例を示すと予約と空き確認を区別しやすくなる。"},
+{c:"v",w:"decompose",p:"動",m:"分解する",ex:"Decompose the task into smaller subtasks.",exj:"タスクを小さなサブタスクに分解する。"},
+{c:"v",w:"generalize",p:"動",m:"一般化する、応用する",ex:"The model generalized the criteria to an unseen pattern.",exj:"モデルは基準を未知のパターンにも応用した。"},
+{c:"v",w:"normalize",p:"動",m:"正規化する（形式を揃える）",ex:"Normalize all dates to ISO 8601.",exj:"すべての日付を ISO 8601 形式に揃える。"},
+{c:"v",w:"extract",p:"動",m:"抽出する",ex:"Claude extracts line items from scanned invoices.",exj:"Claude がスキャンした請求書から明細を抽出する。"},
+{c:"v",w:"trim",p:"動",m:"削る、切り詰める",ex:"Trim the tool output to the relevant fields.",exj:"ツール出力を必要な項目だけに削る。"},
+{c:"v",w:"discard",p:"動",m:"捨てる、破棄する",ex:"The hook discards results from other domains.",exj:"フックが他ドメインの結果を破棄する。"},
+{c:"v",w:"reject",p:"動",m:"拒否する、却下する",ex:"Reject extractions that fail validation.",exj:"検証に通らない抽出結果を却下する。"},
+{c:"v",w:"dismiss",p:"動",m:"（指摘を）却下する、退ける",ex:"Developers can dismiss findings they consider incorrect.",exj:"開発者は誤りと思う指摘を却下できる。"},
+{c:"v",w:"flag",p:"動",m:"指摘する、目印をつける",ex:"Flag comments only when they contradict the code.",exj:"コードと矛盾するときだけコメントを指摘する。"},
+{c:"v",w:"route",p:"動",m:"振り分ける、回す",ex:"Route uncertain findings to human reviewers first.",exj:"不確かな指摘を先に人間のレビュアーへ回す。"},
+{c:"v",w:"prioritize",p:"動",m:"優先する",ex:"Prioritize precision over recall.",exj:"再現率より適合率を優先する。"},
+{c:"v",w:"accumulate",p:"動",m:"蓄積する、たまる",ex:"Verbose tool outputs accumulate in the context.",exj:"冗長なツール出力がコンテキストにたまっていく。"},
+{c:"v",w:"degrade",p:"動",m:"劣化する、低下する",ex:"Response quality degrades after many lookups.",exj:"何度も検索すると応答品質が落ちる。",n:"名詞 degradation（劣化）もよく出る。"},
+{c:"v",w:"anchor",p:"動",m:"（先入観に）引きずる、固定する",ex:"The prior solution anchors the same-session review.",exj:"前の解答が同一セッション内のレビューを引きずる。"},
+{c:"v",w:"spawn",p:"動",m:"（子を）生成・起動する",ex:"The coordinator spawns subagents for each topic.",exj:"コーディネーターがトピックごとにサブエージェントを起動する。"},
+{c:"v",w:"orchestrate",p:"動",m:"統括する、指揮する",ex:"Orchestrate multi-agent systems with the Agent SDK.",exj:"Agent SDK でマルチエージェントを統括する。"},
+{c:"v",w:"conform to",p:"動",m:"〜に準拠する、従う",ex:"The output must conform to a predefined schema.",exj:"出力は事前定義のスキーマに準拠しなければならない。"},
+{c:"v",w:"exceed",p:"動",m:"超える",ex:"The documents exceeded context limits.",exj:"文書がコンテキスト上限を超えた。"},
+{c:"v",w:"encounter",p:"動",m:"遭遇する、出くわす",ex:"The subagent encounters a timeout.",exj:"サブエージェントがタイムアウトに遭遇する。"},
+{c:"v",w:"initiate",p:"動",m:"開始する、始める",ex:"The agent initiates its own web searches.",exj:"エージェントが勝手にウェブ検索を始める。"},
+{c:"v",w:"hang",p:"動",m:"（処理が）止まる、固まる",ex:"The pipeline job hangs indefinitely.",exj:"パイプラインのジョブが無期限に止まる。"},
+{c:"v",w:"accommodate",p:"動",m:"受け入れる、対応できるようにする",ex:"A larger window can accommodate verbose outputs.",exj:"大きなウィンドウなら冗長な出力も収まる。"},
+{c:"v",w:"reclaim",p:"動",m:"取り戻す、回収する",ex:"Summarize history to reclaim token budget.",exj:"履歴を要約してトークン予算を取り戻す。"},
+{c:"v",w:"calibrate",p:"動",m:"較正する、調整する",ex:"The model cannot calibrate certainty without criteria.",exj:"基準がないとモデルは確信度を調整できない。"},
+{c:"v",w:"interpret",p:"動",m:"解釈する",ex:"The model may interpret \"high-confidence\" inconsistently.",exj:"モデルは「高確信度」をばらばらに解釈しうる。"},
+{c:"v",w:"replicate",p:"動",m:"再現する、そっくり真似る",ex:"Replicate the exact structure of the template.",exj:"テンプレートの構造をそのまま再現する。"},
+
+// ===== 名詞 =====
+{c:"n",w:"requirement",p:"名",m:"要件、必要条件",ex:"The workflow requirement is to call a tool first.",exj:"ワークフローの要件は、まずツールを呼ぶこと。"},
+{c:"n",w:"constraint",p:"名",m:"制約",ex:"Consider grid interconnection constraints.",exj:"系統接続の制約を考慮する。"},
+{c:"n",w:"trade-off",p:"名",m:"トレードオフ、一長一短",ex:"Each option has a trade-off between cost and latency.",exj:"どの選択肢にもコストと遅延のトレードオフがある。"},
+{c:"n",w:"failure mode",p:"名",m:"失敗のしかた、障害パターン",ex:"Which organization best mitigates this failure mode?",exj:"この失敗パターンを最も抑える構成はどれか？"},
+{c:"n",w:"behavior",p:"名",m:"振る舞い、挙動",ex:"The agent shows inconsistent escalation behavior.",exj:"エージェントのエスカレーションの挙動が一定しない。"},
+{c:"n",w:"consistency",p:"名",m:"一貫性",ex:"Adding vague instructions did not improve consistency.",exj:"曖昧な指示を足しても一貫性は改善しなかった。"},
+{c:"n",w:"reliability",p:"名",m:"信頼性",ex:"Domain 5 covers context management and reliability.",exj:"ドメイン5はコンテキスト管理と信頼性を扱う。"},
+{c:"n",w:"discrepancy",p:"名",m:"食い違い、不一致",ex:"Detect arithmetic discrepancies automatically.",exj:"計算の食い違いを自動で検出する。"},
+{c:"n",w:"mismatch",p:"名",m:"不一致",ex:"Compare the two totals to flag mismatches.",exj:"2つの合計を比べて不一致を指摘する。"},
+{c:"n",w:"threshold",p:"名",m:"しきい値",ex:"Escalate when the score falls below a threshold.",exj:"スコアがしきい値を下回ったらエスカレーションする。"},
+{c:"n",w:"criteria",p:"名",m:"基準（複数形）",ex:"Add explicit escalation criteria.",exj:"明確なエスカレーション基準を追加する。",n:"単数形は criterion。「明確な基準＋具体例」は頻出の正解パターン。"},
+{c:"n",w:"scope",p:"名",m:"範囲、適用範囲",ex:"Use a user-scoped command for personal settings.",exj:"個人設定にはユーザー範囲のコマンドを使う。"},
+{c:"n",w:"boundary",p:"名",m:"境界、区切り",ex:"The tool needs clear boundaries.",exj:"ツールには明確な境界（守備範囲）が必要だ。"},
+{c:"n",w:"iteration",p:"名",m:"反復、1回分の繰り返し",ex:"Send the updated history for the next iteration.",exj:"更新した履歴を次の反復で送る。"},
+{c:"n",w:"findings",p:"名",m:"指摘事項、調査結果",ex:"The pipeline generates hundreds of findings weekly.",exj:"パイプラインは毎週数百件の指摘を出す。",n:"ほぼ常に複数形で出る。"},
+{c:"n",w:"false positive",p:"名",m:"誤検知（本当は問題ないのに指摘）",ex:"The agent flags too many false positives.",exj:"エージェントの誤検知が多すぎる。",n:"反対は false negative（見逃し）。"},
+{c:"n",w:"precision / recall",p:"名",m:"適合率 / 再現率",ex:"Prioritize precision over recall when reviewing.",exj:"レビューでは再現率より適合率を優先する。",n:"precision＝指摘の正確さ、recall＝漏れの少なさ。"},
+{c:"n",w:"dismissal rate",p:"名",m:"却下率",ex:"The dismissal rate has risen to 40%.",exj:"却下率が40%まで上がった。"},
+{c:"n",w:"bandwidth",p:"名",m:"（人の）処理能力、余力",ex:"With limited reviewer bandwidth, filter low-value findings.",exj:"レビュアーの余力が少ないので、価値の低い指摘を絞る。",n:"通信帯域ではなく「手が回る量」の意味で出る。"},
+{c:"n",w:"partial results",p:"名",m:"部分的な結果",ex:"Return partial results with the error context.",exj:"エラー情報と一緒に部分的な結果を返す。"},
+{c:"n",w:"exception",p:"名",m:"例外、特例",ex:"The customer may request an exception review.",exj:"顧客は特例の審査を依頼できる。"},
+{c:"n",w:"policy",p:"名",m:"方針、規定",ex:"Company policy says the credit cannot be applied.",exj:"社内規定ではそのクレジットは適用できない。"},
+{c:"n",w:"entitlement",p:"名",m:"利用権限、受給資格",ex:"An entitlement-check subagent verifies account access.",exj:"権限確認用サブエージェントがアカウントの利用可否を確認する。"},
+{c:"n",w:"availability",p:"名",m:"空き状況、利用可能性",ex:"Direct availability checks to find_appointment_slots.",exj:"空き確認は find_appointment_slots に回す。"},
+{c:"n",w:"convention",p:"名",m:"規約、慣習",ex:"Follow privacy-safe logging conventions on every task.",exj:"全タスクでプライバシーに配慮したログ規約に従う。"},
+{c:"n",w:"repository",p:"名",m:"リポジトリ",ex:"Two sessions were started from the same repository.",exj:"同じリポジトリから2つのセッションが開始された。"},
+{c:"n",w:"invoice / line item",p:"名",m:"請求書 / 明細行",ex:"Line item amounts do not add up to the total.",exj:"明細の金額を足しても合計と合わない。"},
+{c:"n",w:"vendor",p:"名",m:"取引先、販売業者",ex:"Dates appear in varied formats across vendors.",exj:"日付の形式が取引先ごとにばらばら。"},
+{c:"n",w:"refund",p:"名",m:"返金",ex:"The agent applied the wrong refund amount.",exj:"エージェントが間違った返金額を適用した。"},
+{c:"n",w:"audit",p:"名",m:"監査",ex:"A financial audit tool parses long PDFs.",exj:"財務監査ツールが長い PDF を解析する。"},
+{c:"n",w:"holding",p:"名",m:"（法律）判決の要旨",ex:"The model misses holdings from middle cases.",exj:"モデルが中ほどの判例の要旨を見落とす。",n:"業界シナリオ特有の単語。「保有」と訳すと意味が通らない。"},
+
+// ===== 形容詞・副詞 =====
+{c:"a",w:"consistent / inconsistent",p:"形",m:"一貫した / ばらつきのある",ex:"Different runs give inconsistent severity labels.",exj:"実行ごとに深刻度ラベルがばらつく。"},
+{c:"a",w:"explicit",p:"形",m:"明示的な、はっきりした",ex:"Add explicit normalization rules to the prompt.",exj:"プロンプトに明示的な正規化ルールを加える。",n:"反対は implicit（暗黙の）。"},
+{c:"a",w:"concise",p:"形",m:"簡潔な",ex:"Put a concise key-findings summary at the beginning.",exj:"冒頭に簡潔な要点まとめを置く。"},
+{c:"a",w:"vague",p:"形",m:"曖昧な、ぼんやりした",ex:"Claude often writes vague findings.",exj:"Claude はよく曖昧な指摘を書く。"},
+{c:"a",w:"ambiguous",p:"形",m:"（複数の意味に取れて）曖昧な",ex:"An ambiguous tool description causes misuse.",exj:"曖昧なツール説明が誤用を招く。"},
+{c:"a",w:"actionable",p:"形",m:"具体的に対応できる",ex:"Help reviewers find actionable findings.",exj:"レビュアーが対応すべき指摘を見つけやすくする。"},
+{c:"a",w:"transient",p:"形",m:"一時的な",ex:"Attempt local recovery for the transient failure.",exj:"一時的な障害にはまず手元で回復を試みる。",n:"再試行で直る系の障害。"},
+{c:"a",w:"retryable",p:"形",m:"再試行可能な",ex:"The error is a non-retryable business-rule violation.",exj:"そのエラーは再試行しても無駄な業務ルール違反だ。"},
+{c:"a",w:"verbose",p:"形",m:"冗長な、長ったらしい",ex:"Verbose tool outputs fill the context window.",exj:"冗長なツール出力がコンテキストを埋める。"},
+{c:"a",w:"redundant",p:"形",m:"重複した、余分な",ex:"Remove redundant instructions from CLAUDE.md.",exj:"CLAUDE.md から重複した指示を削る。"},
+{c:"a",w:"proprietary",p:"形",m:"独自の、自社専用の",ex:"Build a custom MCP server for the proprietary system.",exj:"独自システム用にカスタム MCP サーバーを作る。"},
+{c:"a",w:"predefined",p:"形",m:"事前に定義された",ex:"Output must follow a predefined schema.",exj:"出力は事前定義のスキーマに従う必要がある。"},
+{c:"a",w:"downstream",p:"形",m:"後工程の、下流の",ex:"A downstream system requires strictly valid JSON.",exj:"後工程のシステムは厳密に有効な JSON を要求する。",n:"反対は upstream（上流の）。"},
+{c:"a",w:"on-demand",p:"形",m:"必要なときだけの",ex:"Package the checklist as an on-demand skill.",exj:"チェックリストは必要時に使うスキルにまとめる。"},
+{c:"a",w:"universal",p:"形",m:"全体共通の",ex:"Universal standards belong in CLAUDE.md.",exj:"全体共通の基準は CLAUDE.md に置く。"},
+{c:"a",w:"role-specific",p:"形",m:"役割ごとの",ex:"Give each subagent a role-specific system prompt.",exj:"各サブエージェントに役割別のシステムプロンプトを与える。"},
+{c:"a",w:"targeted",p:"形",m:"的を絞った",ex:"Re-delegate targeted follow-up questions.",exj:"的を絞った追加質問を再委任する。"},
+{c:"a",w:"subtle",p:"形",m:"微妙な、気づきにくい",ex:"A peer found a subtle logic error.",exj:"同僚が気づきにくいロジックの誤りを見つけた。"},
+{c:"a",w:"prolonged",p:"形",m:"長時間にわたる",ex:"During a prolonged session, the context degrades.",exj:"長いセッションの間にコンテキストが劣化する。"},
+{c:"a",w:"indefinitely",p:"副",m:"いつまでも、無期限に",ex:"The job hangs indefinitely and times out.",exj:"ジョブがいつまでも止まり、タイムアウトする。"},
+{c:"a",w:"occasionally",p:"副",m:"時々、たまに",ex:"Extracted dates occasionally keep the original format.",exj:"抽出された日付がたまに元の形式のまま残る。"},
+{c:"a",w:"autonomously",p:"副",m:"自律的に（人手なしで）",ex:"Resolve simple cases autonomously.",exj:"単純なケースは自律的に解決する。"},
+{c:"a",w:"programmatically",p:"副",m:"プログラムで（機械的に）",ex:"Compare the totals programmatically.",exj:"合計値をプログラムで比較する。",n:"「プロンプトで頼む」より「プログラムで強制する」が正解になる場面が多い。"},
+{c:"a",w:"deterministic",p:"形",m:"必ず同じ結果になる、決定的な",ex:"Hooks provide deterministic enforcement.",exj:"フックなら確実に（毎回同じように）強制できる。",n:"probabilistic（確率的＝プロンプト指示）との対比で理解すると強い。"},
+{c:"a",w:"conservative",p:"形",m:"控えめな、慎重な",ex:"\"Be conservative about escalation\" did not help.",exj:"「エスカレーションは控えめに」では改善しなかった。",n:"こういう曖昧な指示を足すだけの選択肢は誤答になりがち。"},
+{c:"a",w:"cohesive",p:"形",m:"まとまりのある",ex:"Combine findings into a cohesive report.",exj:"結果をまとまりのあるレポートにする。"},
+{c:"a",w:"sufficient / insufficient",p:"形",m:"十分な / 不十分な",ex:"Insufficient tokens were left for the review.",exj:"レビューに使えるトークンが足りなかった。"},
+{c:"a",w:"bounded",p:"形",m:"範囲が限られた",ex:"Medium applies to failures with bounded impact.",exj:"影響範囲が限定的な障害は Medium とする。"},
+{c:"a",w:"exploitable",p:"形",m:"悪用可能な",ex:"Critical is for exploitable authorization bypasses.",exj:"悪用可能な認可回避は Critical とする。"},
+{c:"a",w:"non-interactive",p:"形",m:"非対話の（入力待ちしない）",ex:"CI needs Claude Code in non-interactive mode.",exj:"CI では Claude Code を非対話モードで動かす。"},
+
+// ===== 技術用語 =====
+{c:"t",w:"agentic loop",p:"名",m:"エージェントループ（ツール実行→結果返却の繰り返し）",ex:"The agentic loop continues while stop_reason is tool_use.",exj:"stop_reason が tool_use の間ループを続ける。"},
+{c:"t",w:"stop_reason",p:"名",m:"応答が止まった理由",ex:"The response has stop_reason set to tool_use.",exj:"応答の stop_reason が tool_use になっている。",n:"tool_use＝ツールを実行して結果を返す、end_turn＝完了。"},
+{c:"t",w:"tool_choice",p:"名",m:"ツール選択の設定（auto / any / tool）",ex:"Set tool_choice to \"any\" to require a tool call.",exj:"必ずツールを呼ばせるなら tool_choice を \"any\" にする。",n:"auto＝任意、any＝どれか必ず、tool＝特定ツールを強制。"},
+{c:"t",w:"coordinator / subagent",p:"名",m:"統括役 / 下位エージェント",ex:"The coordinator routes all changes to subagents.",exj:"変更はすべてコーディネーター経由でサブエージェントへ。"},
+{c:"t",w:"hook",p:"名",m:"フック（特定タイミングで実行される処理）",ex:"A PreToolUse hook blocks disallowed calls.",exj:"PreToolUse フックで許可外の呼び出しを止める。",n:"PreToolUse＝実行前、PostToolUse＝実行後。"},
+{c:"t",w:"allowedTools",p:"名",m:"使用可能なツールの許可リスト",ex:"Limit allowedTools to synthesis-related tools.",exj:"allowedTools を統合用のツールに絞る。"},
+{c:"t",w:"AgentDefinition",p:"名",m:"サブエージェントの定義（説明・プロンプト・ツール）",ex:"Create separate AgentDefinition configurations.",exj:"サブエージェントごとに AgentDefinition を分けて作る。"},
+{c:"t",w:"MCP server",p:"名",m:"MCP サーバー（外部ツールをつなぐ仕組み）",ex:"Use a community MCP server for Jira.",exj:"Jira にはコミュニティ製 MCP サーバーを使う。"},
+{c:"t",w:"input_schema",p:"名",m:"ツールの入力スキーマ",ex:"Define the structure as a tool's input_schema.",exj:"構造をツールの input_schema として定義する。"},
+{c:"t",w:"strict tool use",p:"名",m:"厳格なツール使用（スキーマ準拠を保証）",ex:"Enable strict tool use for schema-compliant output.",exj:"スキーマ準拠の出力には strict tool use を有効にする。"},
+{c:"t",w:"structured output",p:"名",m:"構造化出力",ex:"Domain 4 covers prompt engineering and structured output.",exj:"ドメイン4はプロンプト設計と構造化出力。"},
+{c:"t",w:"few-shot examples",p:"名",m:"少数の具体例（手本）",ex:"Add 2–4 few-shot examples in the exact format.",exj:"正確な形式の手本を2〜4個加える。"},
+{c:"t",w:"system prompt",p:"名",m:"システムプロンプト",ex:"Instructions in the system prompt alone were not enough.",exj:"システムプロンプトの指示だけでは不十分だった。"},
+{c:"t",w:"CLAUDE.md",p:"名",m:"Claude Code の常時読み込み設定ファイル",ex:"Put universal conventions in the project CLAUDE.md.",exj:"共通規約はプロジェクトの CLAUDE.md に書く。"},
+{c:"t",w:"skill",p:"名",m:"スキル（必要時に読み込む手順集）",ex:"Package task-specific workflows as skills.",exj:"タスク固有の手順はスキルにまとめる。"},
+{c:"t",w:"slash command",p:"名",m:"スラッシュコマンド",ex:"Create a slash command in .claude/commands/.",exj:".claude/commands/ にスラッシュコマンドを作る。"},
+{c:"t",w:"/memory · /compact",p:"名",m:"読み込み中のメモリ確認 / 会話の圧縮",ex:"Run /memory to verify loaded files.",exj:"/memory で読み込み済みファイルを確認する。"},
+{c:"t",w:"plan mode",p:"名",m:"計画モード（実行前に計画だけ立てる）",ex:"Use plan mode before large refactoring.",exj:"大きなリファクタの前に plan mode を使う。"},
+{c:"t",w:"-p flag",p:"名",m:"非対話で実行して結果を出力するフラグ",ex:"The job hangs because the -p flag was missing.",exj:"-p がないので入力待ちで止まる。"},
+{c:"t",w:"Message Batches API",p:"名",m:"一括（非同期）処理 API",ex:"Submit 200 requests to the Message Batches API.",exj:"200件のリクエストをバッチ API に投げる。"},
+{c:"t",w:"custom_id",p:"名",m:"バッチ内の各リクエストの識別子",ex:"Use custom_id to find which requests failed.",exj:"custom_id でどのリクエストが失敗したか特定する。",n:"結果の順序は保証されないので、順番で突き合わせる選択肢は誤答。"},
+{c:"t",w:"context window",p:"名",m:"コンテキストウィンドウ（一度に扱える量）",ex:"A larger context window is not the real fix.",exj:"ウィンドウを大きくするのは本質的な解決ではない。"},
+{c:"t",w:"token budget",p:"名",m:"トークンの予算（使える量）",ex:"Manage the token budget in long sessions.",exj:"長いセッションではトークン予算を管理する。"},
+{c:"t",w:"lost in the middle",p:"名",m:"長い入力の中ほどを見落とす現象",ex:"Key findings in the middle get lost.",exj:"中ほどにある重要な結果が見落とされる。"},
+{c:"t",w:"progressive summarization",p:"名",m:"段階的な要約",ex:"Progressive summarization can lose exact numbers.",exj:"段階的に要約すると正確な数値が失われうる。"},
+{c:"t",w:"case facts block",p:"名",m:"案件の事実をまとめた固定ブロック",ex:"Keep order IDs in a persistent case facts block.",exj:"注文IDなどを常設の事実ブロックに保持する。"},
+{c:"t",w:"scratchpad",p:"名",m:"作業メモ（ファイル）",ex:"Record key findings in a scratchpad file.",exj:"重要な発見を作業メモファイルに記録する。"},
+{c:"t",w:"prompt caching",p:"名",m:"プロンプトキャッシュ",ex:"Place stable content first to benefit from caching.",exj:"変わらない内容を先頭に置くとキャッシュが効く。"},
+{c:"t",w:"max_tokens",p:"名",m:"出力トークンの上限",ex:"Increasing max_tokens does not fix context loss.",exj:"max_tokens を増やしてもコンテキスト劣化は直らない。"},
+{c:"t",w:"CI/CD · pull request",p:"名",m:"継続的インテグレーション / プルリクエスト",ex:"Run automated review on every pull request.",exj:"すべてのプルリクで自動レビューを実行する。"},
+];
+const CATS={all:"すべて",q:"設問の決まり文句",v:"動詞",n:"名詞",a:"形容詞・副詞",t:"技術用語"};
+const KEY="ccaf-vocab-known-v1";
+let known=new Set();
+try{known=new Set(JSON.parse(localStorage.getItem(KEY)||"[]"))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify([...known]))}catch(e){}};
+WORDS.forEach((w,i)=>w.id=w.w+"|"+w.c);
+
+let cat="all",dir="en",onlyNew=false,order=[],pos=0,view="card";
+const $=id=>document.getElementById(id);
+
+function pool(){return WORDS.filter(w=>(cat==="all"||w.c===cat)&&(!onlyNew||!known.has(w.id)))}
+function rebuild(shuffle){
+  order=pool();
+  if(shuffle){for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}}
+  pos=0;render();
+}
+function renderChips(){
+  $("chips").innerHTML=Object.entries(CATS).map(([k,v])=>{
+    const n=WORDS.filter(w=>k==="all"||w.c===k).length;
+    return `<button class="chip" data-c="${k}" aria-pressed="${k===cat}">${v} ${n}</button>`}).join("");
+  $("chips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cat=b.dataset.c;renderChips();rebuild(false);renderList()});
+}
+function renderProgress(){
+  const k=WORDS.filter(w=>known.has(w.id)).length;
+  $("bar").style.width=(k/WORDS.length*100)+"%";
+  $("prog").textContent=`覚えた ${k} / ${WORDS.length}`;
+}
+function render(){
+  renderProgress();
+  const card=$("card");card.classList.remove("flipped");
+  const has=order.length>0;
+  $("empty").hidden=has;card.parentElement.hidden=!has;$("actions").style.visibility=has?"visible":"hidden";
+  if(!has)return;
+  if(pos>=order.length)pos=0;
+  const w=order[pos];
+  $("fCat").textContent=CATS[w.c];$("bCat").textContent=CATS[w.c];
+  $("fKnown").innerHTML=known.has(w.id)?'<span class="known-badge">覚えた</span>':"";
+  const fw=$("fWord");
+  if(dir==="en"){fw.textContent=w.w;fw.classList.remove("ja");$("fPos").textContent=w.p}
+  else{fw.textContent=w.m;fw.classList.add("ja");$("fPos").textContent=w.p+"　英語で言うと？"}
+  $("bWord").textContent=w.w+"（"+w.p+"）";
+  $("bMean").textContent=w.m;
+  $("bEx").textContent=w.ex;$("bExj").textContent=w.exj;
+  $("bNote").textContent=w.n||"";$("bNote").hidden=!w.n;
+  $("counter").textContent=`${pos+1} / ${order.length}`;
+}
+function flip(){$("card").classList.toggle("flipped")}
+function next(mark){
+  if(!order.length)return;
+  const w=order[pos];
+  if(mark===true)known.add(w.id);
+  if(mark===false)known.delete(w.id);
+  save();
+  if(onlyNew&&mark===true){order.splice(pos,1)}else{pos++}
+  if(pos>=order.length)pos=0;
+  render();renderList();
+}
+function speak(){
+  if(!order.length||!("speechSynthesis" in window))return;
+  const w=order[pos];const txt=w.w.replace(/\//g," or ").replace(/·/g,",");
+  speechSynthesis.cancel();
+  const a=new SpeechSynthesisUtterance(txt);a.lang="en-US";a.rate=.9;
+  const b=new SpeechSynthesisUtterance(w.ex);b.lang="en-US";b.rate=.9;
+  speechSynthesis.speak(a);speechSynthesis.speak(b);
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function renderList(){
+  const q=$("search").value.trim().toLowerCase();
+  const items=WORDS.filter(w=>(cat==="all"||w.c===cat)&&(!onlyNew||!known.has(w.id))&&(!q||(w.w+w.m+w.ex).toLowerCase().includes(q)));
+  $("list").innerHTML=items.length?items.map(w=>`<div class="row">
+    <input type="checkbox" class="check" data-id="${esc(w.id)}" ${known.has(w.id)?"checked":""} aria-label="${esc(w.w)} を覚えた">
+    <div class="en">${esc(w.w)}<small>${w.p}・${CATS[w.c]}</small></div>
+    <div class="jp">${esc(w.m)}<small>${esc(w.ex)}</small></div></div>`).join("")
+    :'<div class="row" style="display:block;color:var(--muted)">該当する単語がありません。検索語を変えてください。</div>';
+  $("list").querySelectorAll(".check").forEach(c=>c.onchange=()=>{c.checked?known.add(c.dataset.id):known.delete(c.dataset.id);save();renderProgress()});
+}
+function setView(v){view=v;$("vCard").setAttribute("aria-pressed",v==="card");$("vList").setAttribute("aria-pressed",v==="list");
+  $("cardView").hidden=v!=="card";$("listView").hidden=v!=="list";$("dirSeg").style.display=v==="card"?"":"none";$("shuffle").style.display=v==="card"?"":"none";
+  if(v==="list")renderList();else rebuild(false)}
+
+$("card").onclick=flip;
+$("speak").onclick=e=>{e.stopPropagation();speak()};
+$("again").onclick=()=>next(false);
+$("got").onclick=()=>next(true);
+$("shuffle").onclick=()=>rebuild(true);
+$("onlyNew").onchange=e=>{onlyNew=e.target.checked;rebuild(false);renderList()};
+$("dEn").onclick=()=>{dir="en";$("dEn").setAttribute("aria-pressed",true);$("dJa").setAttribute("aria-pressed",false);render()};
+$("dJa").onclick=()=>{dir="ja";$("dJa").setAttribute("aria-pressed",true);$("dEn").setAttribute("aria-pressed",false);render()};
+$("vCard").onclick=()=>setView("card");$("vList").onclick=()=>setView("list");
+$("search").oninput=renderList;
+$("reset").onclick=()=>{if(confirm("覚えた記録をすべて消します。よろしいですか？")){known.clear();save();rebuild(false);renderList()}};
+document.addEventListener("keydown",e=>{
+  if(view!=="card"||e.target.tagName==="INPUT")return;
+  if(e.key===" "||e.key==="Enter"){e.preventDefault();flip()}
+  else if(e.key==="ArrowRight")next(true);
+  else if(e.key==="ArrowLeft")next(false);
+  else if(e.key==="s"||e.key==="S")speak();
+});
+renderChips();rebuild(false);
+</script>
+</body>
+</html>
